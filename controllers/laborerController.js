@@ -33,11 +33,25 @@ exports.findLaborers = async (req, res) => {
   try {
     const { latitude, longitude, requiredSkills } = req.body;
     const radius = 10; // 10km radius
+
+    // Convert radius to degrees
+    const radiusInDegrees = radius / 111;
+
+    // Calculate the latitude range
+    const minLat = latitude - radiusInDegrees;
+    const maxLat = latitude + radiusInDegrees;
+
+    // Calculate the longitude range
+    const minLng = longitude - (radiusInDegrees / Math.cos(latitude * Math.PI / 180));
+    const maxLng = longitude + (radiusInDegrees / Math.cos(latitude * Math.PI / 180));
+
+    // Query the database to find laborers within the calculated range
     const laborers = await Laborer.find({
       skills: { $all: requiredSkills },
-      latitude: { $gte: latitude - radius, $lte: latitude + radius },
-      longitude: { $gte: longitude - radius, $lte: longitude + radius },
+      latitude: { $gte: minLat, $lte: maxLat },
+      longitude: { $gte: minLng, $lte: maxLng },
     });
+
     res.status(200).send(laborers);
   } catch (error) {
     res.status(500).send(error.message);
